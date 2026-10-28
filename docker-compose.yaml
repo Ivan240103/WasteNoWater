@@ -1,6 +1,6 @@
 services:
   farm-backend: # Python backend service
-    container-name: farm-backend
+    container_name: farm-backend
     build: ./farm-backend
     ports:
       - "8000:8000"
@@ -20,7 +20,7 @@ services:
         condition: service_healthy
 
   farm-database: # PostgreSQL db (just one table: sensor_readings)
-    container-name: farm-db
+    container_name: farm-db
     build: ./farm-database
     ports:
       - "5432:5432"
@@ -37,7 +37,7 @@ services:
       retries: 10
 
   sensor-simulator: # emulated sensors (the "external source" of random data)
-    container-name: sensors
+    container_name: sensors
     build: ./sensor-simulator
     ports:
       - "8001:8001"
@@ -51,7 +51,7 @@ services:
         condition: service_healthy
 
   ui: # React dashboard (served by nginx, proxies /api and /sim)
-    container-name: ui
+    container_name: ui
     build: ./ui
     ports:
       - "3000:80"
