@@ -1,5 +1,6 @@
 services:
   farm-backend: # Python backend service
+    container-name: farm-backend
     build: ./farm-backend
     ports:
       - "8000:8000"
@@ -7,18 +8,19 @@ services:
       DATABASE_URL: postgresql://farm:farm@farm-database:5432/farm
       LOG_LEVEL: INFO # DEBUG also prints every received reading
       EXPECTED_SENSORS: soil-1,soil-2,soil-3,soil-4
-      SENSOR_TIMEOUT_SECONDS: 15 # shorter for demos
-      PLANNING_INTERVAL_SECONDS: 5
+      SENSOR_TIMEOUT_SECONDS: 20 # shorter for demos
+      PLANNING_INTERVAL_SECONDS: 10
     healthcheck:
       test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
       interval: 3s
       timeout: 3s
       retries: 10
     depends_on:
-      db:
+      farm-database:
         condition: service_healthy
 
   farm-database: # PostgreSQL db (just one table: sensor_readings)
+    container-name: farm-db
     build: ./farm-database
     ports:
       - "5432:5432"
@@ -35,6 +37,7 @@ services:
       retries: 10
 
   sensor-simulator: # emulated sensors (the "external source" of random data)
+    container-name: sensors
     build: ./sensor-simulator
     ports:
       - "8001:8001"
@@ -48,6 +51,7 @@ services:
         condition: service_healthy
 
   ui: # React dashboard (served by nginx, proxies /api and /sim)
+    container-name: ui
     build: ./ui
     ports:
       - "3000:80"
