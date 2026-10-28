@@ -1,0 +1,59 @@
+services:
+  farm-backend: # Python backend service
+    build: ./farm-backend
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: postgresql://farm:farm@farm-database:5432/farm
+      LOG_LEVEL: INFO # DEBUG also prints every received reading
+      EXPECTED_SENSORS: soil-1,soil-2,soil-3,soil-4
+      SENSOR_TIMEOUT_SECONDS: 15 # shorter for demos
+      PLANNING_INTERVAL_SECONDS: 5
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+    depends_on:
+      db:
+        condition: service_healthy
+
+  farm-database: # PostgreSQL db (just one table: sensor_readings)
+    build: ./farm-database
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_USER: farm
+      POSTGRES_PASSWORD: farm
+      POSTGRES_DB: farm
+    volumes:
+      - farm_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U farm -d farm"]
+      interval: 3s
+      timeout: 3s
+      retries: 10
+
+  sensor-simulator: # emulated sensors (the "external source" of random data)
+    build: ./sensor-simulator
+    ports:
+      - "8001:8001"
+    environment:
+      BACKEND_URL: http://farm-backend:8000
+      SENSOR_IDS: soil-1,soil-2,soil-3,soil-4
+      SEND_INTERVAL_SECONDS: 2
+      ANOMALY_PROBABILITY: 0.01
+    depends_on:
+      farm-backend:
+        condition: service_healthy
+
+  ui: # React dashboard (served by nginx, proxies /api and /sim)
+    build: ./ui
+    ports:
+      - "3000:80"
+    depends_on:
+      - farm-backend
+      - sensor-simulator
+
+volumes:
+  farm_pgdata:
